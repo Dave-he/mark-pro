@@ -1,0 +1,27 @@
+data:
+  watermarked_dir: data/train/watermarked
+  clean_dir: data/train/clean
+  image_size: [512, 512]
+  mask_threshold: 10
+  train_ratio: 0.8
+  resize_mode: 'scale'  # 可选：fixed（固定尺寸）、scale（等比缩放）、pad（填充）
+  keep_aspect_ratio: true  # 保持宽高比
+  pad_value: 0  # 填充值
+
+train:
+  batch_size: 4
+  epochs: 100
+  lr: 5e-5
+  seg_loss_weight: 0.3
+  validation_split: 0.2
+  save_interval: 10
+
+model:
+  use_seg_branch: true
+  save_dir: models/
+  checkpoint: seg_unetpp.pth
+
+predict:
+  input_dir: data/inputs/
+  output_dir: data/utputs/
+  threshold: 0.5

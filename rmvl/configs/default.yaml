@@ -1,0 +1,16 @@
+data:
+  data_dir: ./data
+  image_size: 512
+
+training:
+  batch_size: 16
+  epochs: 100
+  learning_rate: 0.0001
+  num_workers: 4
+  lambda_seg: 0.5      # 分割损失权重
+  lambda_edge: 0.2     # 边缘损失权重
+  lr_patience: 5       # 学习率调整耐心期
+  save_dir: ./checkpoints
+
+logging:
+  log_dir: ./logs

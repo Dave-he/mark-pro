@@ -1,0 +1,10 @@
+MODEL:
+  NAME: "mask_rcnn_R_50_FPN_3x"
+  NUM_CLASSES: 2  # 背景+水印
+DATASET:
+  TRAIN_IMG_DIR: "datasets/train/images"
+  TRAIN_ANN_FILE: "datasets/train/annotations.json"
+  VAL_IMG_DIR: "datasets/val/images"
+  VAL_ANN_FILE: "datasets/val/annotations.json"
+OUTPUT:
+  DIR: "outputs"

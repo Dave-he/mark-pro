@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+
+data/
+runs/
+./models/
+venv/
+.git/
+logs/
+mask/
+checkpoint/
+mark-pro.zip
