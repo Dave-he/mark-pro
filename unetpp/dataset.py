@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms
-from .configs.default import cfg
+from configs.default import cfg
 
 class SegWatermarkDataset(Dataset):
     def __init__(self, watermarked_dir, clean_dir, transform=None, augment=False):
