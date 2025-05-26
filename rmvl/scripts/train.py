@@ -53,15 +53,20 @@ def main(config):
     ])
     
     # 加载数据集
+    # 训练集应使用split_ratio参数划分
     train_dataset = WatermarkDataset(
-        root_dir=os.path.join(config['data']['data_dir'], 'train'),
-        transform=train_transform
+        root_dir=config['data']['train_dir'],
+        transform=train_transform,
+        mode='train',
+        split_ratio=0.8  # ← 确保此参数小于1.0
     )
     
+    # 验证集应使用相同的root_dir但mode='val'
     val_dataset = WatermarkDataset(
-        root_dir=os.path.join(config['data']['data_dir'], 'val'),
+        root_dir=config['data']['train_dir'],  # ← 注意与训练集相同路径
         transform=val_transform,
-        mode='val'
+        mode='val',
+        split_ratio=0.8
     )
     
     logging.info(f"训练样本数: {len(train_dataset)}")

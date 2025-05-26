@@ -1,6 +1,13 @@
 data:
   data_dir: ./data
   image_size: 512
+  train_dir: ./data/train
+  val_dir: ./data/val
+  test_dir: ./data/test
+  mask_dir: ./data/mask
+  test_mask_dir: ./data/test_mask
+  train_csv: ./data/train.csv
+  val_csv: ./data/val.csv
 
 training:
   batch_size: 16

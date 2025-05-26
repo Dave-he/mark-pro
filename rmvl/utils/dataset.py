@@ -3,9 +3,19 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
+import random
 
 class WatermarkDataset(Dataset):
-    def __init__(self, root_dir, transform=None, mode='train'):
+    def __init__(self, root_dir, transform=None, mode='train', split_ratio=0.8):
+        all_files = sorted([f for f in os.listdir(root_dir) if f.endswith('_watermark.png')])
+        random.shuffle(all_files)
+        
+        split_idx = int(len(all_files) * split_ratio)
+        
+        if mode == 'train':
+            self.files = all_files[:split_idx]  # ← 训练集应取前80%
+        else:
+            self.files = all_files[split_idx:]  # ← 验证集应取后20%
         self.root_dir = root_dir
         self.transform = transform
         self.mode = mode
@@ -18,6 +28,14 @@ class WatermarkDataset(Dataset):
         # 过滤无效文件
         self.filenames = [f for f in self.filenames if 
                           f.endswith(('.jpg', '.jpeg', '.png', '.bmp'))]
+
+        # 划分训练集和验证集
+        random.shuffle(self.filenames)
+        split_idx = int(len(self.filenames) * split_ratio)
+        if self.mode == 'train':
+            self.filenames = self.filenames[:split_idx]
+        else:
+            self.filenames = self.filenames[split_idx:]
 
     def __len__(self):
         return len(self.filenames)
