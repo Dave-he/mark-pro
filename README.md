@@ -151,6 +151,4 @@ huggingface-cli upload heyongxian/watermark_images ./data --repo-type=dataset
 aws s3 --no-sign-request \
   --endpoint http://bs3-sgp.internal \
   cp mark-pro.zip s3://oversea-game/ai-model/
-
-## https://bs3-sgp.corp.kuaishou.com
 ```
