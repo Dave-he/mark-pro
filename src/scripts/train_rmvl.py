@@ -12,7 +12,7 @@ from datetime import datetime
 
 # 导入自定义模块
 from models.rmvl.seg_unet import SegEnhancedUNet
-from common.utils.dataset import WatermarkDatasetRMVL
+from common.data.dataset import WatermarkDataset
 from common.utils.losses import MultiTaskLoss
 
 def setup_logging(log_dir):
