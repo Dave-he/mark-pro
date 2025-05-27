@@ -12,8 +12,13 @@ def train():
     # 创建保存目录
     os.makedirs(cfg.model.save_dir, exist_ok=True)
     
-    # 设备配置
-    device = torch.device('cuda' if torch.cuda.is_available() else "mps" if torch.mps.is_available() else 'cpu')
+    # 设备配置改为从yaml读取
+    device = torch.device(cfg.train.device if hasattr(cfg.train, 'device') else \
+                    'cuda' if torch.cuda.is_available()  else  \
+                        'mps' if torch.mps.is_available() else 'cpu')
+
+
+    logging.info(f"使用设备: {device}")
     
     # 数据加载器
     train_loader, val_loader = create_dataloaders()
