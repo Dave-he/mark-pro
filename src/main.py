@@ -12,15 +12,15 @@ from scripts import train, train_mask, train_rmvl, predict, predict_mask, predic
 def main():
     parser = argparse.ArgumentParser(description="选择训练脚本")
     parser.add_argument('--mode', type=str, default='default', choices=['default', 'mask', 'rmvl'], help='选择训练模式')
-    parser.add_argument('--predict', type=bool, default=False, help='是否预测')
+    parser.add_argument('--predict', type=bool, default=False, help='是否预测', required=False)
     args = parser.parse_args()
     if args.predict:
         if args.mode == 'default':
-            predict.predict()
+            predict.batch_predict()
         elif args.mode =='mask':
-            predict_mask.predict()
+            predict_mask.main()
         elif args.mode == 'rmvl':
-            predict_rmvl.predict()
+            predict_rmvl.main()
         else:
             print('未知模式，请选择 default、mask 或 rmvl')
     else :
