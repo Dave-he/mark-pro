@@ -3,9 +3,9 @@ import torch
 import numpy as np
 from PIL import Image
 from torchvision import transforms
-from .models.seg_unetpp import SegGuidedUnetPP
-from .utils.visualize import overlay_mask, visualize_results
-from .configs.default import cfg
+from models.seg_unetpp import SegGuidedUnetPP
+from utils.visualize import overlay_mask, visualize_results
+from configs.default import cfg
 
 def predict_single_image(model, image_path, output_dir, visualize=True):
     # 加载图像并保存原始尺寸

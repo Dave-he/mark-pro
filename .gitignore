@@ -3,10 +3,10 @@ __pycache__/
 
 data/
 runs/
-./models/
+models/
 venv/
 .git/
 logs/
 mask/
-checkpoint/
+checkpoints/
 mark-pro.zip

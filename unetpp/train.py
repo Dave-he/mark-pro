@@ -3,10 +3,10 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from dataset import create_dataloaders
-from .models.seg_unetpp import SegGuidedUnetPP  # 添加相对路径导入
-from .utils.losses import MultiTaskLoss
-from .utils.metrics import psnr, ssim, iou
-from .configs.default import cfg
+from models.seg_unetpp import SegGuidedUnetPP  # 添加相对路径导入
+from utils.losses import MultiTaskLoss
+from utils.metrics import psnr, ssim, iou
+from configs.default import cfg
 
 def train():
     # 创建保存目录
