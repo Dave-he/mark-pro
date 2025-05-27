@@ -2,11 +2,12 @@ import os
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
-from dataset import create_dataloaders
+from common.data.dataset import create_dataloaders
 from models.unetpp.seg_unetpp import SegGuidedUnetPP  # 添加相对路径导入
 from common.utils.losses import MultiTaskLoss
 from common.utils.metrics import psnr, ssim, iou
 from configs.default import cfg
+import logging
 
 def train():
     # 创建保存目录
@@ -46,7 +47,7 @@ def train():
     )
     
     # TensorBoard 日志
-    writer = SummaryWriter(log_dir='runs/watermark_remover')
+    writer = SummaryWriter(log_dir='./logs/watermark_remover')
     
     # 训练循环
     best_val_loss = float('inf')

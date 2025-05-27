@@ -18,9 +18,6 @@ train:
   lr: 5e-5
   device: cuda:1  # 新增设备配置
   
-device: cuda:1
-amp: true  # 自动混合精度
-
 
 # 或者新增runtime节点
 runtime:
@@ -35,6 +32,7 @@ model:
   checkpoint: seg_unetpp.pth
 
 predict:
+  device: cuda:1
   input_dir: data/input/
   output_dir: data/output/
   threshold: 0.5

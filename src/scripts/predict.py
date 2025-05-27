@@ -108,11 +108,13 @@ def predict_single_image(model, image_path, output_dir, visualize=True):
     return restored_img, seg_mask
 
 def batch_predict():
-    # 设备配置
-    cfg.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
+     # 设备配置改为从yaml读取
+    device = cfg.predict.device if hasattr(cfg.train, 'predict') else \
+                    'cuda' if torch.cuda.is_available()  else  \
+                        'mps' if torch.mps.is_available() else 'cpu'
+
     # 加载模型
-    model = SegGuidedUnetPP().to(cfg.device)
+    model = SegGuidedUnetPP().to(device)
     # 生成模型名（与train.py一致）
     imgsize = f"{cfg.data.image_size[0]}x{cfg.data.image_size[1]}"
     segw = cfg.train.seg_loss_weight

@@ -21,4 +21,3 @@ def setup_logger(log_dir='logs'):
 
 # 在主脚本中使用
 logger = setup_logger()
-logger.info(f"开始训练，配置: {cfg}")
