@@ -17,6 +17,7 @@ pip install opencv-python
 pip install pillow numpy matplotlib tqdm pyyaml 
 pip install yacs
 pip install tensorboard
+pip install albumentations
 
 ## 如果是3.11以下版本 可以安装iopaint
 pip install iopaint

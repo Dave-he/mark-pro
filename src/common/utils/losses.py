@@ -11,7 +11,7 @@ class DiceLoss(nn.Module):
         y_pred = y_pred.view(-1)
         y_true = y_true.view(-1)
         intersection = (y_pred * y_true).sum()
-        dice = (2. * intersection + self.smooth) / (y_pred.sum() + y_true.sum() + self.smooth)
+        dice = (2 * intersection + self.smooth) / (y_pred.sum() + y_true.sum() + self.smooth)
         return 1 - dice
 
 class MultiTaskLoss(nn.Module):
@@ -124,3 +124,27 @@ class CombinedLoss(nn.Module):
         seg_l = self.seg_loss(seg_pred, seg_true) + self.dice_loss(seg_pred, seg_true)
         edge_l = self.edge_loss(img_pred, img_true)
         return img_l + self.seg_weight * seg_l + self.edge_weight * edge_l
+
+# class DiceLoss(nn.Module):
+#     def __init__(self, smooth=1e-5):
+#         super(DiceLoss, self).__init__()
+#         self.smooth = smooth
+    
+#     def forward(self, logits, targets):
+#         logits = torch.sigmoid(logits)
+#         intersection = torch.sum(logits * targets)
+#         union = torch.sum(logits) + torch.sum(targets)
+#         dice = (2.0 * intersection + self.smooth) / (union + self.smooth)
+#         return 1.0 - dice
+
+class BCEDiceLoss(nn.Module):
+    def __init__(self, bce_weight=0.5, smooth=1e-5):
+        super(BCEDiceLoss, self).__init__()
+        self.bce_weight = bce_weight
+        self.bce_loss = nn.BCEWithLogitsLoss()
+        self.dice_loss = DiceLoss(smooth=smooth)
+    
+    def forward(self, logits, targets):
+        bce = self.bce_loss(logits, targets)
+        dice = self.dice_loss(logits, targets)
+        return self.bce_weight * bce + (1 - self.bce_weight) * dice

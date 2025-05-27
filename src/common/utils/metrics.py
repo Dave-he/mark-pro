@@ -40,3 +40,16 @@ def iou(pred, target, threshold=0.5):
     intersection = (pred * target).sum()
     union = (pred + target - pred * target).sum()
     return (intersection / (union + 1e-8)).item()
+
+def dice_coef(y_true, y_pred):
+    y_true_f = y_true.flatten()
+    y_pred_f = y_pred.flatten()
+    intersection = torch.sum(y_true_f * y_pred_f)
+    return (2.0 * intersection + 1e-5) / (torch.sum(y_true_f) + torch.sum(y_pred_f) + 1e-5)
+
+def iou_score(y_true, y_pred):
+    y_true_f = y_true.flatten()
+    y_pred_f = y_pred.flatten()
+    intersection = torch.sum(y_true_f * y_pred_f)
+    union = torch.sum(y_true_f) + torch.sum(y_pred_f) - intersection
+    return (intersection + 1e-5) / (union + 1e-5)
