@@ -109,7 +109,7 @@ def predict_single_image(model, image_path, output_dir, visualize=True):
 
 def batch_predict():
     # 加载模型
-    model = SegGuidedUnetPP().to(cfg.predict.device)
+    model = SegGuidedUnetPP().to(cfg.device)
     # 生成模型名（与train.py一致）
     imgsize = f"{cfg.data.image_size[0]}x{cfg.data.image_size[1]}"
     segw = cfg.train.seg_loss_weight

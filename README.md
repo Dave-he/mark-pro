@@ -2,14 +2,14 @@
 
 ## 安装
 ```bash
-#python 3.9-3.13都可以
-virtualenv venv -p python3.12
+#本代码python 3.9-3.13都可以, （iopaint最大支持到3.11，最好用3.11以下版本）
+virtualenv venv -p python3.10
 source venv/bin/activate
 # ./venv/Scripts/activate.ps1 #windows
 
 #conda
-conda create -n env12 python=3.12
-conda activate env12
+conda create -n env10 python=3.10
+conda activate env10
 
 
 pip install torch torchvision
@@ -18,7 +18,8 @@ pip install pillow numpy matplotlib tqdm pyyaml
 pip install yacs
 pip install tensorboard
 
-pip install -r requirements.txt
+## 如果是3.11以下版本 可以安装iopaint
+pip install iopaint
 ```
 
 ## 运行
@@ -89,13 +90,31 @@ mark-pro/
 
 2. 模型训练
 ```bash
-PYTHONPATH=./rmvl python rmvl/scripts/train.py --config rmvl/configs/default.yaml
-
-cd unetpp
-python unetpp/train.py 
+cd src
+python main.py
 ```
 
+
 3. 模型预测
+```bash
+cd src
+python run.py
+
+
+
+# 如果有iopaint,可以基于这个擦除
+cd ..
+
+iopaint run --model=runwayml/stable-diffusion-inpainting \
+  --device=cuda --image=data/input --mask=data/output/masks \
+  --output=data/out1 --model-dir=.cache
+```
+
+
+
+
+
+## 废弃
 ```bash
 python scripts/predict.py \
   --model-path checkpoints/model_best.pth \

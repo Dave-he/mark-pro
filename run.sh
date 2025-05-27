@@ -1,5 +1,5 @@
 #!/bin/bash
-cd src
+cd src 
 
 #训练 UNet++
 python3 main.py --config configs/unetpp.yaml

@@ -8,3 +8,12 @@
 3.使用unet同时生成mask和消除水印
 
 """
+from scripts.predict import batch_predict
+
+def main():
+    batch_predict()
+    
+
+
+if __name__ == '__main__':
+    main()

@@ -5,7 +5,9 @@ __pycache__/
 /runs
 /models
 /venv
+/env
 /logs
 .git
 /checkpoints
+.cache
 mark-pro.zip

@@ -1,3 +1,4 @@
+device: cpu #cuda:1
 data:
   watermarked_dir: ./../data/train/watermarked
   clean_dir: ./../data/train/clean
@@ -16,7 +17,7 @@ train:
   persistent_workers: true
   epochs: 100
   lr: 5e-5
-  device: cpu #cuda:1
+
   log_dir: ./../logs/watermark_remover'
   
 model:
@@ -25,7 +26,6 @@ model:
   checkpoint: seg_unetpp.pth
 
 predict:
-  device: cpu #cuda:1
   input_dir: ./../data/input/
   output_dir: ./../data/output/
   threshold: 0.5

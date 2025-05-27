@@ -14,7 +14,7 @@ def train():
     os.makedirs(cfg.model.save_dir, exist_ok=True)
     
     # 设备配置改为从yaml读取
-    device = torch.device(cfg.train.device)
+    device = torch.device(cfg.device)
 
 
     logging.info(f"使用设备: {device}")
