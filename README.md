@@ -108,7 +108,7 @@ cd ..
 
 iopaint run --model=runwayml/stable-diffusion-inpainting \
   --device=cuda --image=data/input --mask=data/output/masks \
-  --output=data/out1 --model-dir=.cache
+  --output=data/out1 --model-dir=~/.cache
 
 # iopaint模型预下载地址,可解压放到.cache目录下
 https://s1-12864.ap4r.com/oversea-game/ai-model/model.7z
