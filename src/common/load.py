@@ -1,3 +1,5 @@
+import logger
+
 # 添加更健壮的错误处理
 def safe_load_image(image_path):
     try:
