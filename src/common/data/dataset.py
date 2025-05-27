@@ -6,27 +6,27 @@ from torchvision import transforms
 from configs.default import cfg
 
 # 使用Albumentations库进行更高效的数据增强
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
+# import albumentations as A
+# from albumentations.pytorch import ToTensorV2
 
-def get_transforms(mode='train'):
-    if mode == 'train':
-        return A.Compose([
-            A.RandomResizedCrop(height=cfg.data.image_size[0], width=cfg.data.image_size[1]),
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.5),
-            A.RandomRotate90(p=0.5),
-            A.RandomBrightnessContrast(p=0.2),
-            A.GaussNoise(p=0.2),
-            A.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-            ToTensorV2(),
-        ])
-    else:
-        return A.Compose([
-            A.Resize(height=cfg.data.image_size[0], width=cfg.data.image_size[1]),
-            A.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-            ToTensorV2(),
-        ])
+# def get_transforms(mode='train'):
+#     if mode == 'train':
+#         return A.Compose([
+#             A.RandomResizedCrop(height=cfg.data.image_size[0], width=cfg.data.image_size[1]),
+#             A.HorizontalFlip(p=0.5),
+#             A.VerticalFlip(p=0.5),
+#             A.RandomRotate90(p=0.5),
+#             A.RandomBrightnessContrast(p=0.2),
+#             A.GaussNoise(p=0.2),
+#             A.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+#             ToTensorV2(),
+#         ])
+#     else:
+#         return A.Compose([
+#             A.Resize(height=cfg.data.image_size[0], width=cfg.data.image_size[1]),
+#             A.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+#             ToTensorV2(),
+#         ])
 
 
 

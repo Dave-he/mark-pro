@@ -28,6 +28,7 @@ cfg.train.num_workers = 8
 cfg.train.pin_memory = True
 cfg.train.prefetch_factor = 2
 cfg.train.persistent_workers = True
+cfg.train.log_dir = "logs/"
 
 # 模型配置
 cfg.model = CN()

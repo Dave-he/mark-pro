@@ -1,6 +1,6 @@
 data:
-  watermarked_dir: data/train/watermarked
-  clean_dir: data/train/clean
+  watermarked_dir: ./../data/train/watermarked
+  clean_dir: ./../data/train/clean
   image_size: [512, 512]
   mask_threshold: 10
   train_ratio: 0.8
@@ -16,23 +16,16 @@ train:
   persistent_workers: true
   epochs: 100
   lr: 5e-5
-  device: cuda:1  # 新增设备配置
+  device: cpu #cuda:1
+  log_dir: ./../logs/watermark_remover'
   
-
-# 或者新增runtime节点
-runtime:
-  device: cuda:1
-  seg_loss_weight: 0.3
-  validation_split: 0.2
-  save_interval: 10
-
 model:
   use_seg_branch: true
-  save_dir: models/
+  save_dir: ./../models/
   checkpoint: seg_unetpp.pth
 
 predict:
-  device: cuda:1
-  input_dir: data/input/
-  output_dir: data/output/
+  device: cpu #cuda:1
+  input_dir: ./../data/input/
+  output_dir: ./../data/output/
   threshold: 0.5
