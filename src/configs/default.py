@@ -36,5 +36,7 @@ cfg.predict.input_dir = "input/"
 cfg.predict.output_dir = "output/"
 cfg.predict.threshold = 0.5
 
+
+
 # 从YAML文件加载配置
 cfg.merge_from_file('unetpp/configs/default.yaml')

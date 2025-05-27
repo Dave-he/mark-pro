@@ -9,10 +9,18 @@ data:
   pad_value: 0  # 填充值
 
 train:
-  batch_size: 8
+  batch_size: 16
+  num_workers: 8  # 根据CPU核心数调整
+  pin_memory: true
+  prefetch_factor: 2
+  persistent_workers: true
   epochs: 100
   lr: 5e-5
   device: cuda:1  # 新增设备配置
+  
+device: cuda:1
+amp: true  # 自动混合精度
+
 
 # 或者新增runtime节点
 runtime:

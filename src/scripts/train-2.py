@@ -28,9 +28,21 @@ def train():
     
     # 损失函数和优化器
     criterion = MultiTaskLoss(seg_weight=cfg.train.seg_loss_weight)
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.train.lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5
+    optimizer = torch.optim.AdamW(model.parameters(), 
+        lr=3e-4, weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer, max_lr=3e-4,
+        total_steps=cfg.epochs * len(train_loader),
+        pct_start=0.3)
+    
+    trainer = TorchTrainer(
+        model=model,
+        criterion=CombinedLoss(),  # 组合损失函数
+        optimizer=optimizer,
+        scheduler=scheduler,
+        metrics=[SSIM(), PSNR()],  # 新增评估指标
+        amp=True,  # 启用混合精度
+        gradient_clip=0.5
     )
     
     # TensorBoard 日志
