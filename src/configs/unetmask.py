@@ -48,7 +48,6 @@ cfg.PREDICT.POST_PROCESS = True
 # IOPaint配置
 cfg.IOPAINT = CN()
 cfg.IOPAINT.MODEL = "lama"  # lama, ldm, zits, mat
-cfg.IOPAINT.DEVICE = "cuda"
 cfg.IOPAINT.OUTPUT_DIR = "results/restored"
 
 # 完整流水线配置
@@ -58,4 +57,4 @@ cfg.PIPELINE.SAVE_INTERMEDIATE = False
 cfg.PIPELINE.QUALITY_CHECK = True
 
 # 合并配置文件
-# cfg.merge_from_file('configs/unetmask.yaml')
+cfg.merge_from_file('configs/unetmask.yaml')
