@@ -21,6 +21,8 @@ pip install albumentations
 
 ## 如果是3.11以下版本 可以安装iopaint
 pip install iopaint
+pip install -r requirements.txt
+
 ```
 
 ## 运行
@@ -133,24 +135,32 @@ https://s1-12864.ap4r.com/oversea-game/ai-model/model.7z
 
 
 
-## 废弃
+## 使用
 ```bash
-python scripts/predict.py \
-  --model-path checkpoints/model_best.pth \
-  --input test_images/watermarked_001.jpg \
-  --output results/
 
-python scripts/predict.py \
-  --model-path checkpoints/model_best.pth \
-  --input test_images/ \
-  --output results/
+# Process single image
+python src/scripts/predict_mask.py --input image.jpg --output results/ --save-mask
 
+# Process directory
+python src/scripts/predict_mask.py --input data/test/ --output results/ --iopaint-model lama
 
-```bash
-cd unetpp
-python predict.py --config configs/default.yaml --input inputs/ --output results/
+# Use specific model and device
+python src/scripts/predict_mask.py --input data/test/ --output results/ --model models/best_model.pth --device cpu
+
 ```
 
+```bash
+from scripts.predict_mask import WatermarkRemovalPipeline
+
+# Initialize pipeline
+pipeline = WatermarkRemovalPipeline('models/unet_mask_watermark.pth')
+
+# Process single image
+result = pipeline.process_single_image('input.jpg', 'output/')
+
+# Process batch
+results = pipeline.process_batch('input_folder/', 'output_folder/')
+```
 
 
 

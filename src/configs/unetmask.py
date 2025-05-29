@@ -27,8 +27,8 @@ cfg.TRAIN.EPOCHS = 50
 cfg.TRAIN.LR = 0.0001
 cfg.TRAIN.WEIGHT_DECAY = 0.0001
 cfg.DEVICE = "cuda"
-cfg.TRAIN.OUTPUT_DIR = "./../logs/output"
-cfg.TRAIN.MODEL_SAVE_PATH = "./../models/unet_mask_watermark.pth"
+cfg.TRAIN.OUTPUT_DIR = "./logs/output"
+cfg.TRAIN.MODEL_SAVE_PATH = "./models/unet_mask_watermark.pth"
 cfg.TRAIN.LOG_INTERVAL = 10
 cfg.TRAIN.SAVE_INTERVAL = 5
 
@@ -45,7 +45,17 @@ cfg.PREDICT.BATCH_SIZE = 8
 cfg.PREDICT.THRESHOLD = 0.5
 cfg.PREDICT.POST_PROCESS = True
 
+# IOPaint配置
+cfg.IOPAINT = CN()
+cfg.IOPAINT.MODEL = "lama"  # lama, ldm, zits, mat
+cfg.IOPAINT.DEVICE = "cuda"
+cfg.IOPAINT.OUTPUT_DIR = "results/restored"
 
- 
+# 完整流水线配置
+cfg.PIPELINE = CN()
+cfg.PIPELINE.SAVE_MASKS = True
+cfg.PIPELINE.SAVE_INTERMEDIATE = False
+cfg.PIPELINE.QUALITY_CHECK = True
+
 # 合并配置文件
-cfg.merge_from_file('configs/unetmask.yaml')
+# cfg.merge_from_file('configs/unetmask.yaml')
