@@ -12,7 +12,7 @@ conda create -n env10 python=3.10
 conda activate env10
 
 
-pip install torch torchvision
+pip install torch torchvision transformers huggingface_hub requests
 pip install opencv-python
 pip install pillow numpy matplotlib tqdm pyyaml 
 pip install yacs
