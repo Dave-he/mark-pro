@@ -89,14 +89,29 @@ mark-pro/
       └── rmvl.yaml
 ``` 
 
-2. 模型训练
+2. 数据集检测 
+```bash
+# 检测模式（默认）
+python check.py
+
+# 删除模式
+python check.py --delete
+
+# 指定自定义目录
+python check.py --base-dir /path/to/data --delete
+
+# 指定自定义子目录名
+python check.py --watermarked-dir images_with_wm --clean-dir images_clean
+```
+
+
+3. 模型训练
 ```bash
 cd src
 python main.py
 ```
 
-
-3. 模型预测
+1. 模型预测
 ```bash
 cd src
 python run.py
