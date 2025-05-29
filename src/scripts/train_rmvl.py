@@ -11,9 +11,9 @@ import logging
 from datetime import datetime
 
 # 导入自定义模块
-from models.seg_unet import SegEnhancedUNet
-from utils.dataset import WatermarkDataset
-from utils.losses import MultiTaskLoss
+from models.rmvl.seg_unet import SegEnhancedUNet
+from common.data.dataset import WatermarkDataset
+from common.utils.losses import MultiTaskLoss
 
 def setup_logging(log_dir):
     os.makedirs(log_dir, exist_ok=True)

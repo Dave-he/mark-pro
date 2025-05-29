@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 # 导入模型
-from models.seg_unet import SegEnhancedUNet
+from models.rmvl.seg_unet import SegEnhancedUNet
 
 def predict_single_image(model, image_path, output_dir, image_size=256, mask_threshold=0.5, device='cuda'):
     """预测单张图像并保存结果"""

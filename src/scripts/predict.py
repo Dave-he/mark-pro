@@ -3,8 +3,8 @@ import torch
 import numpy as np
 from PIL import Image
 from torchvision import transforms
-from models.seg_unetpp import SegGuidedUnetPP
-from utils.visualize import overlay_mask, visualize_results
+from models.unetpp.seg_unetpp import SegGuidedUnetPP
+from common.utils.visualize import overlay_mask, visualize_results
 from configs.default import cfg
 
 def predict_single_image(model, image_path, output_dir, visualize=True):
@@ -108,9 +108,6 @@ def predict_single_image(model, image_path, output_dir, visualize=True):
     return restored_img, seg_mask
 
 def batch_predict():
-    # 设备配置
-    cfg.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
     # 加载模型
     model = SegGuidedUnetPP().to(cfg.device)
     # 生成模型名（与train.py一致）

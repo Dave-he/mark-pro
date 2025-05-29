@@ -2,20 +2,19 @@ import os
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
-from dataset import create_dataloaders
-from models.seg_unetpp import SegGuidedUnetPP  # 添加相对路径导入
-from utils.losses import MultiTaskLoss
-from utils.metrics import psnr, ssim, iou
+from common.data.dataset import create_dataloaders
+from models.unetpp.seg_unetpp import SegGuidedUnetPP  # 添加相对路径导入
+from common.utils.losses import MultiTaskLoss
+from common.utils.metrics import psnr, ssim, iou
 from configs.default import cfg
+import logging
 
 def train():
     # 创建保存目录
     os.makedirs(cfg.model.save_dir, exist_ok=True)
     
     # 设备配置改为从yaml读取
-    device = torch.device(cfg.train.device if hasattr(cfg.train, 'device') else \
-                    'cuda' if torch.cuda.is_available()  else  \
-                        'mps' if torch.mps.is_available() else 'cpu')
+    device = torch.device(cfg.device)
 
 
     logging.info(f"使用设备: {device}")
@@ -28,13 +27,25 @@ def train():
     
     # 损失函数和优化器
     criterion = MultiTaskLoss(seg_weight=cfg.train.seg_loss_weight)
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.train.lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5
-    )
+    optimizer = torch.optim.AdamW(model.parameters(), 
+        lr=3e-4, weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer, max_lr=3e-4,
+        total_steps=cfg.train.epochs * len(train_loader),
+        pct_start=0.3)
+    
+    # trainer = TorchTrainer(
+    #     model=model,
+    #     criterion=CombinedLoss(),  # 组合损失函数
+    #     optimizer=optimizer,
+    #     scheduler=scheduler,
+    #     metrics=[SSIM(), PSNR()],  # 新增评估指标
+    #     amp=True,  # 启用混合精度
+    #     gradient_clip=0.5
+    # )
     
     # TensorBoard 日志
-    writer = SummaryWriter(log_dir='runs/watermark_remover')
+    writer = SummaryWriter(log_dir=cfg.train.log_dir)
     
     # 训练循环
     best_val_loss = float('inf')

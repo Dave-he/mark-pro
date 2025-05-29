@@ -1,6 +1,7 @@
+device: cpu #cuda:1
 data:
-  watermarked_dir: data/train/watermarked
-  clean_dir: data/train/clean
+  watermarked_dir: ./../data/train/watermarked
+  clean_dir: ./../data/train/clean
   image_size: [512, 512]
   mask_threshold: 10
   train_ratio: 0.8
@@ -9,24 +10,22 @@ data:
   pad_value: 0  # 填充值
 
 train:
-  batch_size: 8
+  batch_size: 16
+  num_workers: 8  # 根据CPU核心数调整
+  pin_memory: true
+  prefetch_factor: 2
+  persistent_workers: true
   epochs: 100
   lr: 5e-5
-  device: cuda:1  # 新增设备配置
 
-# 或者新增runtime节点
-runtime:
-  device: cuda:1
-  seg_loss_weight: 0.3
-  validation_split: 0.2
-  save_interval: 10
-
+  log_dir: ./../logs/watermark_remover'
+  
 model:
   use_seg_branch: true
-  save_dir: models/
+  save_dir: ./../models/
   checkpoint: seg_unetpp.pth
 
 predict:
-  input_dir: data/input/
-  output_dir: data/output/
+  input_dir: ./../data/input/
+  output_dir: ./../data/output/
   threshold: 0.5

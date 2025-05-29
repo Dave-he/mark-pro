@@ -15,6 +15,18 @@ class ConvBlock(nn.Module):
         )
     
     def forward(self, x):
+        # 在跳跃连接处添加通道注意力
+        def conv_block(in_ch, out_ch, attn=False):
+            layers = [
+                nn.Conv2d(in_ch, out_ch, 3, padding=1),
+                nn.BatchNorm2d(out_ch),
+                nn.ReLU(inplace=True)
+            ]
+            if attn:
+                layers.append(ChannelAttention(out_ch))
+            return nn.Sequential(*layers)
+
+        # 定义注意力模块
         return self.block(x)
 
 class UpSample(nn.Module):
@@ -148,3 +160,14 @@ class SegGuidedUnetPP(nn.Module):
         seg_out = torch.sigmoid(self.seg_out(s1))
         
         return img_out, seg_out
+
+class ChannelAttention(nn.Module):
+    def __init__(self, channel, reduction=16):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // reduction),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // reduction, channel),
+            nn.Sigmoid()
+        )

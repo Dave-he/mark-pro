@@ -3,6 +3,7 @@ from yacs.config import CfgNode as CN
 
 # 创建配置节点
 cfg = CN()
+cfg.device = "cuda"
 
 # 数据配置
 cfg.data = CN()
@@ -24,6 +25,12 @@ cfg.train.seg_loss_weight = 0.3
 cfg.train.validation_split = 0.2
 cfg.train.save_interval = 10
 
+cfg.train.num_workers = 8
+cfg.train.pin_memory = True
+cfg.train.prefetch_factor = 2
+cfg.train.persistent_workers = True
+cfg.train.log_dir = "logs/"
+
 # 模型配置
 cfg.model = CN()
 cfg.model.use_seg_branch = True
@@ -37,4 +44,4 @@ cfg.predict.output_dir = "output/"
 cfg.predict.threshold = 0.5
 
 # 从YAML文件加载配置
-cfg.merge_from_file('unetpp/configs/default.yaml')
+cfg.merge_from_file('configs/unetpp.yaml')

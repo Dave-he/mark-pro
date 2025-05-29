@@ -1,15 +1,27 @@
 #!/bin/bash
-python3 unetpp/train.py 
+cd src 
+
+#训练 UNet++
+python3 main.py --mode default
 if [ $? -eq 0 ]; then
-    python3 unetpp/predict.py
+    python3 run.py --mode default
 else
     echo "训练失败，未执行预测。"
 fi
 
 
-PYTHONPATH=./rmvl python3 rmvl/scripts/train.py --config rmvl/configs/default.yaml
+#训练 rmvl
+python3 main.py --mode mask
 if [ $? -eq 0 ]; then
-    python3 rmvl/scripts/predict.py --model-path outputs/best_model.pth --input data/test/watermarked --output outputs/predict_results --image-size 256 --mask-threshold 0.5 --device cuda
+    python3 run.py --mode mask
+else
+    echo "训练失败，未执行预测。"
+fi
+
+#训练 mask-rcnn
+python3 main.py --mode rmvl
+if [ $? -eq 0 ]; then
+    python3 run.py --mode rmvl
 else
     echo "训练失败，未执行预测。"
 fi

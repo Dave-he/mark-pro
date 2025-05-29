@@ -1,0 +1,43 @@
+DEVICE: cpu #"cuda:1"
+# 模型配置
+MODEL:
+  NAME: "UNetPlusPlus"
+  INPUT_CHANNELS: 3
+  NUM_CLASSES: 1
+  DEEP_SUPERVISION: False
+
+# 数据配置
+DATA:
+  ROOT_DIR: "./../data/train"          # 数据集根目录，应包含watermarked和clean子目录
+  IMG_SIZE: 512
+  GENERATE_MASK_THRESHOLD: 30
+  TRAIN_RATIO: 0.8          # 训练集比例
+  VAL_RATIO: 0.2            # 验证集比例
+  SHUFFLE: True             # 是否随机打乱
+  SEED: 42                  # 随机种子，确保结果可复现
+
+
+# 训练配置
+TRAIN:
+  BATCH_SIZE: 8
+  EPOCHS: 50
+  LR: 0.0001
+  WEIGHT_DECAY: 0.0001
+
+  OUTPUT_DIR: "./../log/output"
+  MODEL_SAVE_PATH: "./../models/unet_mark_watermark.pth"
+  LOG_INTERVAL: 10
+  SAVE_INTERVAL: 5
+
+# 损失函数配置
+LOSS:
+  BCE_WEIGHT: 0.5
+  DICE_SMOOTH: 1e-5
+
+# 预测配置
+PREDICT:
+  INPUT_PATH: "./../data/input"  # 输入带水印图像目录
+  OUTPUT_DIR: "./../data/mask"         # 输出掩码目录
+  BATCH_SIZE: 8                       # 批处理大小
+  THRESHOLD: 0.5                      # 二值化阈值
+  POST_PROCESS: True                  # 是否应用后处理
