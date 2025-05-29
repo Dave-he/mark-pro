@@ -1,4 +1,4 @@
-DEVICE: cpu #"cuda:1"
+DEVICE: "cuda:1"
 # 模型配置
 MODEL:
   NAME: "UNetPlusPlus"
@@ -19,7 +19,7 @@ DATA:
 
 # 训练配置
 TRAIN:
-  BATCH_SIZE: 1
+  BATCH_SIZE: 16
   EPOCHS: 300
   LR: 0.0001
   WEIGHT_DECAY: 0.0001
