@@ -117,8 +117,15 @@ def train():
     )
     
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5, verbose=True
+        optimizer, mode='min', factor=0.5, patience=5
     )
+    
+    # Add this in your training loop where you call scheduler.step()
+    # old_lr = optimizer.param_groups[0]['lr']
+    # scheduler.step(val_loss)
+    # new_lr = optimizer.param_groups[0]['lr']
+    # if old_lr != new_lr:
+    #     print(f'Learning rate reduced from {old_lr} to {new_lr}')
     
     # 训练循环
     best_val_loss = float('inf')
