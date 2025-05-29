@@ -89,8 +89,12 @@ class WatermarkDataset(Dataset):
                 watermarked_img = augmented['image']
                 mask = augmented['mask']
             
-            # 确保掩码是二值的
-            mask = (mask > 0.5).astype(np.float32)
+            # 确保掩码是二值的 - 兼容NumPy和Tensor
+            if isinstance(mask, torch.Tensor):
+                mask = (mask > 0.5).float()
+            else:
+                mask = (mask > 0.5).astype(np.float32)
+            
             return watermarked_img, mask
         
         # 测试模式只返回带水印图像
@@ -98,7 +102,8 @@ class WatermarkDataset(Dataset):
             if self.transform:
                 augmented = self.transform(image=watermarked_img)
                 watermarked_img = augmented['image']
-            return watermarked_img, image_name
+            
+            return watermarked_img
     
     def _generate_mask(self, watermarked_img, clean_img):
         """从带水印图像和无水印图像生成掩码"""

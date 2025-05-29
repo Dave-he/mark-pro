@@ -125,18 +125,6 @@ class CombinedLoss(nn.Module):
         edge_l = self.edge_loss(img_pred, img_true)
         return img_l + self.seg_weight * seg_l + self.edge_weight * edge_l
 
-# class DiceLoss(nn.Module):
-#     def __init__(self, smooth=1e-5):
-#         super(DiceLoss, self).__init__()
-#         self.smooth = smooth
-    
-#     def forward(self, logits, targets):
-#         logits = torch.sigmoid(logits)
-#         intersection = torch.sum(logits * targets)
-#         union = torch.sum(logits) + torch.sum(targets)
-#         dice = (2.0 * intersection + self.smooth) / (union + self.smooth)
-#         return 1.0 - dice
-
 class BCEDiceLoss(nn.Module):
     def __init__(self, bce_weight=0.5, smooth=1e-5):
         super(BCEDiceLoss, self).__init__()
@@ -145,6 +133,14 @@ class BCEDiceLoss(nn.Module):
         self.dice_loss = DiceLoss(smooth=smooth)
     
     def forward(self, logits, targets):
+        # 处理维度不匹配：如果 logits 有额外的通道维度，则压缩它
+        if logits.dim() == 4 and logits.size(1) == 1:
+            logits = logits.squeeze(1)  # 从 [B, 1, H, W] 变为 [B, H, W]
+        
+        # 确保 targets 也是正确的维度
+        if targets.dim() == 4 and targets.size(1) == 1:
+            targets = targets.squeeze(1)
+            
         bce = self.bce_loss(logits, targets)
         dice = self.dice_loss(logits, targets)
         return self.bce_weight * bce + (1 - self.bce_weight) * dice
