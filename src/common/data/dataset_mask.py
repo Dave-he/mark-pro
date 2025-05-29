@@ -6,6 +6,7 @@ from torch.utils.data import Dataset, Subset
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import random
+from PIL import Image, ImageFile
 
 
 class WatermarkDataset(Dataset):
