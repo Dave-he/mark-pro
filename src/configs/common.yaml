@@ -1,0 +1,86 @@
+# 公共基础配置
+# 所有模型共享的默认配置
+
+# 数据配置
+data:
+  image_size: [512, 512]
+  mask_threshold: 10
+  train_ratio: 0.8
+  val_ratio: 0.2
+  resize_mode: 'scale'  # fixed, scale, pad
+  keep_aspect_ratio: true
+  pad_value: 0
+  shuffle: true
+  seed: 42
+  
+  # 数据增强
+  augmentation:
+    enabled: true
+    brightness_range: [0.8, 1.2]
+    contrast_range: [0.8, 1.2]
+    hflip_prob: 0.5
+    vflip_prob: 0.5
+    rotate_range: [-15, 15]
+
+# 训练配置
+train:
+  batch_size: 16
+  epochs: 100
+  lr: 1e-4
+  weight_decay: 1e-4
+  num_workers: 4
+  pin_memory: true
+  prefetch_factor: 2
+  persistent_workers: true
+  validation_split: 0.2
+  save_interval: 10
+  log_interval: 10
+  
+  # 早停配置
+  early_stopping:
+    enabled: true
+    patience: 10
+    min_delta: 0.001
+  
+  # 学习率调度
+  scheduler:
+    type: 'reduce_on_plateau'  # onecycle, reduce_on_plateau, cosine
+    patience: 5
+    factor: 0.5
+    min_lr: 1e-7
+
+# 运行时配置
+runtime:
+  device: 'cuda'  # cuda, cpu, cuda:0, cuda:1
+  amp: false  # 自动混合精度
+  gradient_clip: 1.0
+  seed: 42
+
+# 模型配置
+model:
+  save_dir: './models/'
+  attention:
+    enabled: false
+    type: 'channel'  # channel, spatial, cbam
+  normalization: 'batch'  # batch, group, instance
+
+# 预测配置
+predict:
+  batch_size: 8
+  threshold: 0.5
+  save_visualization: true
+  save_mask: true
+  save_overlay: true
+
+# 日志配置
+logging:
+  enabled: true
+  log_dir: './logs/'
+  tensorboard: true
+  save_images_interval: 100
+  num_images_to_save: 4
+
+# 损失函数配置
+loss:
+  bce_weight: 0.5
+  dice_smooth: 1e-5

@@ -1,0 +1,46 @@
+# UNet 掩码预测模型配置
+
+# 数据配置
+data:
+  root_dir: './data/train'
+  watermarked_dir: './data/train/watermarked'
+  clean_dir: './data/train/clean'
+  image_size: [512, 512]
+  generate_mask_threshold: 30
+
+# 训练配置
+train:
+  batch_size: 4
+  epochs: 300
+  lr: 1e-4
+  weight_decay: 1e-4
+  save_interval: 5
+
+# 模型配置
+model:
+  name: 'UNetPlusPlus'
+  input_channels: 3
+  num_classes: 1
+  deep_supervision: false
+  save_path: './models/unet_mask_watermark.pth'
+
+# 预测配置
+predict:
+  input_path: './data/input'
+  output_dir: './data/mask'
+  post_process: true
+
+# IOPaint集成配置
+iopaint:
+  model: 'lama'  # lama, ldm, zits, mat
+  output_dir: './results/restored'
+
+# 流水线配置
+pipeline:
+  save_masks: true
+  save_intermediate: false
+  quality_check: true
+
+# 运行时配置
+runtime:
+  device: 'cpu'

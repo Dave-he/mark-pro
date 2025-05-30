@@ -145,43 +145,40 @@ def get_val_transform(img_size=512):
         ToTensorV2(),
     ])
 
-def create_datasets(cfg):
-    """创建训练集和验证集，自动划分"""
-    # 创建完整数据集
-    full_dataset = WatermarkDataset(
-        watermarked_dir=os.path.join(cfg.DATA.ROOT_DIR, "watermarked"),
-        clean_dir=os.path.join(cfg.DATA.ROOT_DIR, "clean"),
-        mask_dir=os.path.join(cfg.DATA.ROOT_DIR, "masks"),
-        transform=get_train_transform(cfg.DATA.IMG_SIZE),
+# 在 create_datasets 函数中
+def create_datasets(config):
+    """创建训练和验证数据集，接收配置参数"""
+    
+    dataset = WatermarkMaskDataset(
+        watermarked_dir=os.path.join(config['data']['root_dir'], "watermarked"),
+        clean_dir=os.path.join(config['data']['root_dir'], "clean"),
+        mask_dir=os.path.join(config['data']['root_dir'], "masks"),
+        transform=get_train_transform(config['data']['img_size']),
         mode='train',
-        generate_mask_threshold=cfg.DATA.GENERATE_MASK_THRESHOLD
+        generate_mask_threshold=config['data']['generate_mask_threshold']
     )
     
-    # 设置随机种子确保可复现
-    random.seed(cfg.DATA.SEED)
-    torch.manual_seed(cfg.DATA.SEED)
+    # 设置随机种子
+    random.seed(config['data']['seed'])
+    torch.manual_seed(config['data']['seed'])
     
-    # 计算数据集划分
-    dataset_size = len(full_dataset)
-    train_size = int(cfg.DATA.TRAIN_RATIO * dataset_size)
+    dataset_size = len(dataset)
+    train_size = int(config['data']['train_ratio'] * dataset_size)
     val_size = dataset_size - train_size
     
-    # 随机划分数据集
-    indices = list(range(dataset_size))
-    if cfg.DATA.SHUFFLE:
-        random.shuffle(indices)
+    # 分割数据集
+    if config['data']['shuffle']:
+        train_dataset, val_dataset = random_split(
+            dataset, [train_size, val_size],
+            generator=torch.Generator().manual_seed(config['data']['seed'])
+        )
+    else:
+        train_dataset, val_dataset = random_split(
+            dataset, [train_size, val_size],
+            generator=torch.Generator().manual_seed(config['data']['seed'])
+        )
     
-    train_indices, val_indices = indices[:train_size], indices[train_size:]
-    
-    # 创建训练集和验证集
-    train_dataset = Subset(full_dataset, train_indices)
-    val_dataset = Subset(full_dataset, val_indices)
-    
-    # 为验证集设置验证转换
-    val_dataset.dataset.transform = get_val_transform(cfg.DATA.IMG_SIZE)
-    
-    print(f"数据集划分完成:")
-    print(f"训练集: {len(train_dataset)} 张图像")
-    print(f"验证集: {len(val_dataset)} 张图像")
+    # 为验证集设置不同的变换
+    val_dataset.dataset.transform = get_val_transform(config['data']['img_size'])
     
     return train_dataset, val_dataset

@@ -5,52 +5,53 @@ from PIL import Image
 from torchvision import transforms
 from models.unetpp.seg_unetpp import SegGuidedUnetPP
 from common.utils.visualize import overlay_mask, visualize_results
-from configs.default import cfg
+# 使用新的配置系统
+from configs.config import get_unetpp_config
 
-def predict_single_image(model, image_path, output_dir, visualize=True):
+def predict_single_image(model, image_path, output_dir, config, visualize=True):
     # 加载图像并保存原始尺寸
     image = Image.open(image_path).convert('RGB')
     original_size = image.size
     w, h = original_size
     
     # 根据配置选择预处理方式
-    if cfg.data.resize_mode == 'fixed':
+    if config['data']['resize_mode'] == 'fixed':
         # 直接调整到固定尺寸
         input_tensor = transforms.Compose([
-            transforms.Resize(cfg.data.image_size),
+            transforms.Resize(config['data']['image_size']),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        ])(image).unsqueeze(0).to(cfg.device)
+        ])(image).unsqueeze(0).to(config['device'])
         
         padding = None
         
-    elif cfg.data.resize_mode == 'scale':
+    elif config['data']['resize_mode'] == 'scale':
         # 等比缩放
-        max_size = max(cfg.data.image_size)
+        max_size = max(config['data']['image_size'])
         image_scaled = transforms.Resize(max_size)(image)
         
         input_tensor = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        ])(image_scaled).unsqueeze(0).to(cfg.device)
+        ])(image_scaled).unsqueeze(0).to(config['device'])
         
         padding = None
         
-    elif cfg.data.resize_mode == 'pad':
+    elif config['data']['resize_mode'] == 'pad':
         # 填充到固定尺寸
-        target_w, target_h = cfg.data.image_size
+        target_w, target_h = config['data']['image_size']
         
         # 计算填充量
         pad_w = max(0, target_w - w)
         pad_h = max(0, target_h - h)
         padding = (pad_w//2, pad_h//2, pad_w - pad_w//2, pad_h - pad_h//2)
         
-        image_padded = transforms.Pad(padding, fill=cfg.data.pad_value)(image)
+        image_padded = transforms.Pad(padding, fill=config['data']['pad_value'])(image)
         
         input_tensor = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        ])(image_padded).unsqueeze(0).to(cfg.device)
+        ])(image_padded).unsqueeze(0).to(config['device'])
     
     # 模型预测
     model.eval()
@@ -138,5 +139,40 @@ def batch_predict():
     
     print(f"All images processed. Results saved to {cfg.predict.output_dir}")
 
+def main():
+    # 使用新的配置系统
+    config = get_unetpp_config()
+    
+    # 模型加载
+    model = SegGuidedUnetPP().to(config['device'])
+    
+    imgsize = f"{config['data']['image_size'][0]}x{config['data']['image_size'][1]}"
+    segw = config['train']['seg_loss_weight']
+    model_name = f'best_model_{imgsize}_segw{segw}.pth'
+    model_path = os.path.join(config['model']['save_dir'], model_name)
+    model.load_state_dict(torch.load(model_path, map_location=config['device']))
+    
+    # 创建输出目录
+    os.makedirs(config['predict']['output_dir'], exist_ok=True)
+    
+    # 获取所有输入图像
+    image_extensions = ['.jpg', '.jpeg', '.png', '.bmp']
+    image_files = [f for f in os.listdir(cfg.predict.input_dir) 
+                  if os.path.isfile(os.path.join(cfg.predict.input_dir, f)) 
+                  and os.path.splitext(f)[1].lower() in image_extensions]
+    
+    # 批量预测
+    for i, filename in enumerate(image_files):
+        image_path = os.path.join(cfg.predict.input_dir, filename)
+        print(f"Processing {i+1}/{len(image_files)}: {filename}")
+        
+        try:
+            predict_single_image(model, image_path, cfg.predict.output_dir, visualize=False)
+        except Exception as e:
+            print(f"Error processing {filename}: {str(e)}")
+    
+    print(f"All images processed. Results saved to {cfg.predict.output_dir}")
+
 if __name__ == "__main__":
     batch_predict()
+    main()

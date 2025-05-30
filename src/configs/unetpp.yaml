@@ -1,31 +1,30 @@
-device: cuda:1
+# UNet++ 模型特定配置
+# 继承 common.yaml 的基础配置
+
+# 数据路径配置
 data:
-  watermarked_dir: ./../data/train/watermarked
-  clean_dir: ./../data/train/clean
-  image_size: [512, 512]
-  mask_threshold: 10
-  train_ratio: 0.8
-  resize_mode: 'scale'  # 可选：fixed（固定尺寸）、scale（等比缩放）、pad（填充）
-  keep_aspect_ratio: true  # 保持宽高比
-  pad_value: 0  # 填充值
+  watermarked_dir: './data/train/watermarked'
+  clean_dir: './data/train/clean'
+  input_dir: './data/input/'
+  output_dir: './data/output/'
 
+# 训练配置覆盖
 train:
-  batch_size: 16
-  epochs: 300
-  num_workers: 8  # 根据CPU核心数调整
-  pin_memory: true
-  prefetch_factor: 2
-  persistent_workers: true
+  batch_size: 8
+  epochs: 50
   lr: 5e-5
+  seg_loss_weight: 0.3
+  edge_loss_weight: 0.1
 
-  log_dir: ./../logs/watermark_remover'
-  
+# 模型特定配置
 model:
+  name: 'SegGuidedUnetPP'
   use_seg_branch: true
-  save_dir: ./../models/
-  checkpoint: seg_unetpp.pth
+  checkpoint: 'seg_unetpp.pth'
+  attention:
+    enabled: true
+    type: 'channel'
 
-predict:
-  input_dir: ./../data/input/
-  output_dir: ./../data/output/
-  threshold: 0.5
+# 运行时配置
+runtime:
+  device: 'cpu'

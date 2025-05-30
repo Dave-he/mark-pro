@@ -1,6 +1,7 @@
 import os
 import argparse
-import yaml
+# 移除 yaml 导入，使用新的配置系统
+from configs.config import get_rmvl_config
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -28,7 +29,10 @@ def setup_logging(log_dir):
         ]
     )
 
-def main(config):
+def main():
+    # 使用新的配置系统
+    config = get_rmvl_config()
+    
     # 设置日志
     setup_logging(config['logging']['log_dir'])
     logging.info(f"训练配置: {config}")
@@ -227,12 +231,5 @@ def main(config):
             logging.info(f'Best model updated: {best_model_path}')
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Watermark Removal Training')
-    parser.add_argument('--config', type=str, default='configs/default.yaml', help='配置文件路径')
-    args = parser.parse_args()
-    
-    # 加载配置
-    with open(args.config, 'r') as f:
-        config = yaml.safe_load(f)
-    
-    main(config)
+    # 移除 argparse，直接使用配置文件
+    main()

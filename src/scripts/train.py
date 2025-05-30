@@ -3,49 +3,41 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from common.data.dataset import create_dataloaders
-from models.unetpp.seg_unetpp import SegGuidedUnetPP  # 添加相对路径导入
+from models.unetpp.seg_unetpp import SegGuidedUnetPP
 from common.utils.losses import MultiTaskLoss
 from common.utils.metrics import psnr, ssim, iou
-from configs.default import cfg
+# 使用新的配置系统
+from configs.config import get_unetpp_config
 import logging
 
 def train():
-    # 创建保存目录
-    os.makedirs(cfg.model.save_dir, exist_ok=True)
+    # 使用新的配置系统
+    config = get_unetpp_config()
     
-    # 设备配置改为从yaml读取
-    device = torch.device(cfg.device)
-
-
+    # 创建保存目录
+    os.makedirs(config['model']['save_dir'], exist_ok=True)
+    
+    # 设备配置
+    device = torch.device(config['device'])
     logging.info(f"使用设备: {device}")
     
     # 数据加载器
-    train_loader, val_loader = create_dataloaders()
+    train_loader, val_loader = create_dataloaders(config)
     
     # 模型
     model = SegGuidedUnetPP().to(device)
     
     # 损失函数和优化器
-    criterion = MultiTaskLoss(seg_weight=cfg.train.seg_loss_weight)
+    criterion = MultiTaskLoss(seg_weight=config['train']['seg_loss_weight'])
     optimizer = torch.optim.AdamW(model.parameters(), 
         lr=3e-4, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer, max_lr=3e-4,
-        total_steps=cfg.train.epochs * len(train_loader),
+        total_steps=config['train']['epochs'] * len(train_loader),
         pct_start=0.3)
     
-    # trainer = TorchTrainer(
-    #     model=model,
-    #     criterion=CombinedLoss(),  # 组合损失函数
-    #     optimizer=optimizer,
-    #     scheduler=scheduler,
-    #     metrics=[SSIM(), PSNR()],  # 新增评估指标
-    #     amp=True,  # 启用混合精度
-    #     gradient_clip=0.5
-    # )
-    
     # TensorBoard 日志
-    writer = SummaryWriter(log_dir=cfg.train.log_dir)
+    writer = SummaryWriter(log_dir=config['train']['log_dir'])
     
     # 训练循环
     best_val_loss = float('inf')

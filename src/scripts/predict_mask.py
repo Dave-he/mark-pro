@@ -6,25 +6,27 @@ from tqdm import tqdm
 from PIL import Image
 import subprocess
 import tempfile
-from yacs.config import CfgNode as CN
+# 移除 yacs 导入，使用新的配置系统
+from configs.config import get_unet_mask_config
 from models.unetpp.unet_plus_plus import UNetPlusPlus
 from common.data.dataset_mask import get_val_transform
-from configs.unetmask import cfg
 
 class WatermarkRemovalPipeline:
     """Complete watermark removal pipeline using UNet + IOPaint"""
     
     def __init__(self, model_path, device='cuda'):
+        # 使用新的配置系统
+        self.config = get_unet_mask_config()
         self.device = torch.device(device)
         self.model = self._load_model(model_path)
-        self.transform = get_val_transform(cfg.DATA.IMG_SIZE)
+        self.transform = get_val_transform(self.config['data']['img_size'])
         
     def _load_model(self, model_path):
         """Load UNet model for mask prediction"""
         model = UNetPlusPlus(
-            in_channels=cfg.MODEL.INPUT_CHANNELS,
-            num_classes=cfg.MODEL.NUM_CLASSES,
-            deep_supervision=cfg.MODEL.DEEP_SUPERVISION
+            in_channels=self.config['model']['input_channels'],
+            num_classes=self.config['model']['num_classes'],
+            deep_supervision=self.config['model']['deep_supervision']
         ).to(self.device)
         
         if os.path.exists(model_path):
@@ -60,10 +62,11 @@ class WatermarkRemovalPipeline:
         mask = cv2.resize(mask, original_size)
         
         # Binarize mask
-        binary_mask = (mask > cfg.PREDICT.THRESHOLD).astype(np.uint8) * 255
+        # 使用配置中的阈值
+        binary_mask = (mask > self.config['predict']['threshold']).astype(np.uint8) * 255
         
-        # Post-processing
-        if cfg.PREDICT.POST_PROCESS:
+        # 后处理
+        if self.config['predict']['post_process']:
             kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
             binary_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_OPEN, kernel, iterations=1)
             binary_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
@@ -184,14 +187,14 @@ class WatermarkRemovalPipeline:
         return results
 
 def main():
-    """Main function with enhanced functionality"""
-    import argparse
+    # 使用新的配置系统
+    config = get_unet_mask_config()
     
     parser = argparse.ArgumentParser(description='Watermark Removal Pipeline')
     parser.add_argument('--input', type=str, required=True, help='Input image or directory')
-    parser.add_argument('--output', type=str, required=True, help='Output directory')
-    parser.add_argument('--model', type=str, default=cfg.TRAIN.MODEL_SAVE_PATH, help='Model weights path')
-    parser.add_argument('--device', type=str, default=cfg.DEVICE, help='Device (cuda/cpu)')
+    parser.add_argument('--output', type=str, default=config['predict']['output_dir'], help='Output directory')
+    parser.add_argument('--model', type=str, default=config['train']['model_save_path'], help='Model weights path')
+    parser.add_argument('--device', type=str, default=config['device'], help='Device (cuda/cpu)')
     parser.add_argument('--save-mask', action='store_true', help='Save predicted masks')
     parser.add_argument('--iopaint-model', type=str, default='lama', 
                        choices=['lama', 'ldm', 'zits', 'mat'], help='IOPaint model')
@@ -223,5 +226,5 @@ def main():
     except Exception as e:
         print(f"Pipeline initialization failed: {str(e)}")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

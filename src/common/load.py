@@ -7,5 +7,7 @@ def safe_load_image(image_path):
         return image
     except Exception as e:
         logger.error(f"无法加载图像 {image_path}: {str(e)}")
-        # 返回一个空白图像作为替代
-        return Image.new('RGB', (cfg.data.image_size[0], cfg.data.image_size[1]), color='black')
+        # 修改函数签名，接收配置参数
+        def create_black_image(config):
+            """创建黑色图像，接收配置参数"""
+            return Image.new('RGB', (config['data']['image_size'][0], config['data']['image_size'][1]), color='black')

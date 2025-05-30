@@ -1,4 +1,5 @@
 import os
+import random
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -32,7 +33,7 @@ from configs.default import cfg
 
 
 class WatermarkDataset(Dataset):
-    def __init__(self, root_dir, transform=None, mode='train', split_ratio=0.8):
+    def __init__(self, root_dir, transform=None, mode='train', split_ratio=0.8, config=None):
         all_files = sorted([f for f in os.listdir(root_dir) if f.endswith('_watermark.png')])
         random.shuffle(all_files)
         
@@ -45,24 +46,11 @@ class WatermarkDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
         self.mode = mode
+        self.config = config  # 保存配置引用
         
         self.watermarked_dir = os.path.join(root_dir, 'watermarked')
         self.clean_dir = os.path.join(root_dir, 'clean')
-        
-        self.filenames = sorted(os.listdir(self.watermarked_dir))
-        
-        # 过滤无效文件
-        self.filenames = [f for f in self.filenames if 
-                          f.endswith(('.jpg', '.jpeg', '.png', '.bmp'))]
-
-        # 划分训练集和验证集
-        random.shuffle(self.filenames)
-        split_idx = int(len(self.filenames) * split_ratio)
-        if self.mode == 'train':
-            self.filenames = self.filenames[:split_idx]
-        else:
-            self.filenames = self.filenames[split_idx:]
-
+    
     def __len__(self):
         return len(self.filenames)
 
@@ -120,11 +108,12 @@ class SegWatermarkDataset(Dataset):
         w_img = Image.open(w_path).convert('RGB')
         c_img = Image.open(c_path).convert('RGB')
         # 先resize/crop/pad
-        if cfg.data.resize_mode == 'fixed':
-            w_img = w_img.resize(tuple(cfg.data.image_size), Image.BICUBIC)
-            c_img = c_img.resize(tuple(cfg.data.image_size), Image.BICUBIC)
-        elif cfg.data.resize_mode == 'scale':
-            target_size = min(cfg.data.image_size)
+        # 使用配置参数而不是全局 cfg
+        if self.config['data']['resize_mode'] == 'fixed':
+            w_img = w_img.resize(tuple(self.config['data']['image_size']), Image.BICUBIC)
+            c_img = c_img.resize(tuple(self.config['data']['image_size']), Image.BICUBIC)
+        elif self.config['data']['resize_mode'] == 'scale':
+            target_size = min(self.config['data']['image_size'])
             def resize_and_crop(img):
                 w, h = img.size
                 scale = target_size / min(w, h)
@@ -136,16 +125,16 @@ class SegWatermarkDataset(Dataset):
                 return img
             w_img = resize_and_crop(w_img)
             c_img = resize_and_crop(c_img)
-        elif cfg.data.resize_mode == 'pad':
-            target_w, target_h = cfg.data.image_size
+        elif self.config['data']['resize_mode'] == 'pad':
+            target_w, target_h = self.config['data']['image_size']
             def pad_to_size(img, fill=0):
                 w, h = img.size
                 pad_w = max(0, target_w - w)
                 pad_h = max(0, target_h - h)
                 padding = (pad_w//2, pad_h//2, pad_w - pad_w//2, pad_h - pad_h//2)
                 return transforms.Pad(padding, fill=fill)(img)
-            w_img = pad_to_size(w_img, fill=cfg.data.pad_value)
-            c_img = pad_to_size(c_img, fill=cfg.data.pad_value)
+            w_img = pad_to_size(w_img, fill=self.config['data']['pad_value'])
+            c_img = pad_to_size(c_img, fill=self.config['data']['pad_value'])
         # 用resize/crop/pad后图片生成mask
         mask = self._create_mask(w_img, c_img)
         # mask同样resize/crop/pad（如果需要）
@@ -164,7 +153,8 @@ class SegWatermarkDataset(Dataset):
         w_np = np.array(w_img).astype(np.float32)
         c_np = np.array(c_img).astype(np.float32)
         diff = np.mean(np.abs(w_np - c_np), axis=2)
-        mask = (diff > cfg.data.mask_threshold).astype(np.float32)
+        # 使用配置中的阈值
+        mask = (diff > self.config['data']['mask_threshold']).astype(np.float32)
         return Image.fromarray(mask * 255).convert('L')
     
     def transform_mask(self, mask):
@@ -190,34 +180,35 @@ class SegWatermarkDataset(Dataset):
         
         return w_img, c_img, mask
 
-def create_dataloaders():
+def create_dataloaders(config):
+    """创建数据加载器，接收配置参数"""
     transform = transforms.Compose([
-        transforms.Resize(cfg.data.image_size),
+        transforms.Resize(config['data']['image_size']),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     
-    dataset = SegWatermarkDataset(
-        cfg.data.watermarked_dir,
-        cfg.data.clean_dir,
+    dataset = WatermarkDataset(
+        config['data']['watermarked_dir'],
+        config['data']['clean_dir'],
         transform=transform,
-        augment=True
+        config=config  # 传递配置
     )
     
-    train_size = int(cfg.train.validation_split * len(dataset))
+    train_size = int(config['train']['validation_split'] * len(dataset))
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
     
     train_loader = DataLoader(
         train_dataset,
-        batch_size=cfg.train.batch_size,
+        batch_size=config['train']['batch_size'],
         shuffle=True,
         num_workers=4
     )
     
     val_loader = DataLoader(
         val_dataset,
-        batch_size=cfg.train.batch_size,
+        batch_size=config['train']['batch_size'],
         shuffle=False,
         num_workers=4
     )
