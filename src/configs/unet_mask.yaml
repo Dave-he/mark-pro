@@ -2,9 +2,9 @@
 
 # 数据配置
 data:
-  root_dir: './data/train'
-  watermarked_dir: './data/train/watermarked'
-  clean_dir: './data/train/clean'
+  root_dir: '../data/train'
+  watermarked_dir: '../data/train/watermarked'
+  clean_dir: '../data/train/clean'
   image_size: [512, 512]
   generate_mask_threshold: 30
 
@@ -12,9 +12,12 @@ data:
 train:
   batch_size: 4
   epochs: 300
-  lr: 1e-4
-  weight_decay: 1e-4
+  lr: 0.0001  # 改为明确的浮点数格式
+  weight_decay: 0.0001  # 同样改为明确的浮点数格式
   save_interval: 5
+  model_save_path: '../models/unet_mask_watermark.pth'
+  output_dir: '../models/'
+  log_interval: 10
 
 # 模型配置
 model:
@@ -22,18 +25,19 @@ model:
   input_channels: 3
   num_classes: 1
   deep_supervision: false
-  save_path: './models/unet_mask_watermark.pth'
+  save_path: '../models/unet_mask_watermark.pth'  # 确保路径正确
 
 # 预测配置
 predict:
-  input_path: './data/input'
-  output_dir: './data/mask'
+  input_path: '../data/input'
+  output_dir: '../data/mask'
+  threshold: 0.5
   post_process: true
 
 # IOPaint集成配置
 iopaint:
-  model: 'lama'  # lama, ldm, zits, mat
-  output_dir: './results/restored'
+  model: 'lama'
+  output_dir: '../data/restored'
 
 # 流水线配置
 pipeline:

@@ -2,11 +2,13 @@ import os
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
+# 修复导入路径
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from common.data.dataset import create_dataloaders
 from models.unetpp.seg_unetpp import SegGuidedUnetPP
 from common.utils.losses import MultiTaskLoss
 from common.utils.metrics import psnr, ssim, iou
-# 使用新的配置系统
 from configs.config import get_unetpp_config
 import logging
 

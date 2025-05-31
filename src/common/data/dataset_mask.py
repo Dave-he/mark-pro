@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 import torch
-from torch.utils.data import Dataset, Subset
+from torch.utils.data import Dataset, Subset, random_split  # 添加 random_split
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import random
@@ -145,15 +145,14 @@ def get_val_transform(img_size=512):
         ToTensorV2(),
     ])
 
-# 在 create_datasets 函数中
 def create_datasets(config):
     """创建训练和验证数据集，接收配置参数"""
     
-    dataset = WatermarkMaskDataset(
+    dataset = WatermarkDataset(
         watermarked_dir=os.path.join(config['data']['root_dir'], "watermarked"),
         clean_dir=os.path.join(config['data']['root_dir'], "clean"),
         mask_dir=os.path.join(config['data']['root_dir'], "masks"),
-        transform=get_train_transform(config['data']['img_size']),
+        transform=get_train_transform(config['data']['image_size'][0]),  # 确保这里也是正确的
         mode='train',
         generate_mask_threshold=config['data']['generate_mask_threshold']
     )
@@ -167,18 +166,12 @@ def create_datasets(config):
     val_size = dataset_size - train_size
     
     # 分割数据集
-    if config['data']['shuffle']:
-        train_dataset, val_dataset = random_split(
-            dataset, [train_size, val_size],
-            generator=torch.Generator().manual_seed(config['data']['seed'])
-        )
-    else:
-        train_dataset, val_dataset = random_split(
-            dataset, [train_size, val_size],
-            generator=torch.Generator().manual_seed(config['data']['seed'])
-        )
+    train_dataset, val_dataset = random_split(
+        dataset, [train_size, val_size],
+        generator=torch.Generator().manual_seed(config['data']['seed'])
+    )
     
-    # 为验证集设置不同的变换
-    val_dataset.dataset.transform = get_val_transform(config['data']['img_size'])
+    # 为验证集设置不同的变换 - 修复：传入单个整数
+    val_dataset.dataset.transform = get_val_transform(config['data']['image_size'][0])
     
     return train_dataset, val_dataset

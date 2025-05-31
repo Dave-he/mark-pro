@@ -58,7 +58,7 @@ runtime:
 
 # 模型配置
 model:
-  save_dir: './models/'
+  save_dir: '../models/'  # 修改为相对于src目录的路径
   attention:
     enabled: false
     type: 'channel'  # channel, spatial, cbam

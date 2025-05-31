@@ -5,7 +5,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-# 移除 yacs 导入，使用新的配置系统
+# 修复导入路径
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from configs.config import get_unet_mask_config
 from models.unetpp.unet_plus_plus import UNetPlusPlus
 from common.data.dataset_mask import create_datasets
@@ -50,7 +52,7 @@ def train_epoch(model, train_loader, criterion, optimizer, device, epoch, config
     
     return avg_loss, avg_dice
 
-def validate(model, val_loader, criterion, device, cfg):
+def validate(model, val_loader, criterion, device, config):
     model.eval()
     total_loss = 0.0
     total_dice = 0.0
@@ -83,110 +85,114 @@ def validate(model, val_loader, criterion, device, cfg):
     
     return avg_loss, avg_dice
 
-def train():
-    # 创建输出目录
-    os.makedirs(os.path.dirname(cfg.TRAIN.MODEL_SAVE_PATH), exist_ok=True)
-    os.makedirs(cfg.TRAIN.OUTPUT_DIR, exist_ok=True)
-    
-    # 初始化模型
-    device = torch.device(cfg.DEVICE)
-    model = UNetPlusPlus(
-        in_channels=cfg.MODEL.INPUT_CHANNELS,
-        num_classes=cfg.MODEL.NUM_CLASSES,
-        deep_supervision=cfg.MODEL.DEEP_SUPERVISION
-    ).to(device)
-    
-    # 创建数据集
-    train_dataset, val_dataset = create_datasets(cfg)
-    
-    # 创建数据加载器
-    train_loader = DataLoader(train_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=False, num_workers=4)
-    
-    # 定义损失函数和优化器
-    criterion = BCEDiceLoss(
-        bce_weight=cfg.LOSS.BCE_WEIGHT,
-        smooth=cfg.LOSS.DICE_SMOOTH
-    )
-    
-    optimizer = optim.Adam(
-        model.parameters(),
-        lr=cfg.TRAIN.LR,
-        weight_decay=cfg.TRAIN.WEIGHT_DECAY
-    )
-    
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5
-    )
-    
-    # Add this in your training loop where you call scheduler.step()
-    # old_lr = optimizer.param_groups[0]['lr']
-    # scheduler.step(val_loss)
-    # new_lr = optimizer.param_groups[0]['lr']
-    # if old_lr != new_lr:
-    #     print(f'Learning rate reduced from {old_lr} to {new_lr}')
-    
-    # 训练循环
-    best_val_loss = float('inf')
+def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device, config):
+    """训练模型的主函数"""
+    best_dice = 0.0
     train_losses = []
     val_losses = []
     train_dices = []
     val_dices = []
     
-    print(f"开始训练 {cfg.MODEL.NAME} 模型...")
-    print(f"训练集: {len(train_dataset)} 张图像")
-    print(f"验证集: {len(val_dataset)} 张图像")
-    
-    for epoch in range(cfg.TRAIN.EPOCHS):
-        # 训练一个epoch
-        train_loss, train_dice = train_epoch(model, train_loader, criterion, optimizer, device, epoch, cfg)
-        train_losses.append(train_loss)
-        train_dices.append(train_dice)
+    for epoch in range(config['train']['epochs']):
+        # 训练阶段
+        train_loss, train_dice = train_epoch(model, train_loader, criterion, optimizer, device, epoch, config)
         
-        # 验证
-        val_loss, val_dice = validate(model, val_loader, criterion, device, cfg)
-        val_losses.append(val_loss)
-        val_dices.append(val_dice)
+        # 验证阶段
+        val_loss, val_dice = validate(model, val_loader, criterion, device, config)
         
         # 学习率调度
         scheduler.step(val_loss)
         
-        # 打印训练信息
-        print(f"Epoch [{epoch+1}/{cfg.TRAIN.EPOCHS}] "
-              f"Train Loss: {train_loss:.4f}, Train Dice: {train_dice:.4f} "
-              f"Val Loss: {val_loss:.4f}, Val Dice: {val_dice:.4f}")
+        # 记录指标
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+        train_dices.append(train_dice)
+        val_dices.append(val_dice)
+        
+        print(f'Epoch [{epoch+1}/{config["train"]["epochs"]}]')
+        print(f'Train Loss: {train_loss:.4f}, Train Dice: {train_dice:.4f}')
+        print(f'Val Loss: {val_loss:.4f}, Val Dice: {val_dice:.4f}')
+        print('-' * 50)
         
         # 保存最佳模型
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            torch.save(model.state_dict(), cfg.TRAIN.MODEL_SAVE_PATH)
-            print(f"保存最佳模型: {cfg.TRAIN.MODEL_SAVE_PATH} (Val Loss: {val_loss:.4f})")
+        if val_dice > best_dice:
+            best_dice = val_dice
+            torch.save(model.state_dict(), config['train']['model_save_path'])
+            print(f'Best model saved with Dice: {best_dice:.4f}')
         
-        # 定期保存模型
-        if (epoch + 1) % cfg.TRAIN.SAVE_INTERVAL == 0:
-            torch.save(model.state_dict(), os.path.join(
-                os.path.dirname(cfg.TRAIN.MODEL_SAVE_PATH),
-                f"unet_plus_plus_epoch_{epoch+1}.pth"
-            ))
+        # 定期保存检查点
+        if (epoch + 1) % 10 == 0:
+            checkpoint_path = os.path.join(config['train']['output_dir'], f'checkpoint_epoch_{epoch+1}.pth')
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'best_dice': best_dice,
+            }, checkpoint_path)
     
-    # 绘制训练历史
+    # 绘制训练曲线
     plt.figure(figsize=(12, 4))
-    plt.subplot(121)
+    
+    plt.subplot(1, 2, 1)
     plt.plot(train_losses, label='Train Loss')
     plt.plot(val_losses, label='Val Loss')
+    plt.title('Loss Curves')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
     plt.legend()
-    plt.title('Loss History')
     
-    plt.subplot(122)
+    plt.subplot(1, 2, 2)
     plt.plot(train_dices, label='Train Dice')
     plt.plot(val_dices, label='Val Dice')
+    plt.title('Dice Curves')
+    plt.xlabel('Epoch')
+    plt.ylabel('Dice')
     plt.legend()
-    plt.title('Dice Coefficient History')
     
-    plt.savefig(os.path.join(cfg.TRAIN.OUTPUT_DIR, 'training_history.png'))
-    plt.close()
+    plt.tight_layout()
+    plt.savefig(os.path.join(config['train']['output_dir'], 'training_curves.png'))
+    plt.show()
     
-    print(f"训练完成！最佳验证损失: {best_val_loss:.4f}")
+    print(f'Training completed! Best Dice: {best_dice:.4f}')
+
+def train():
+    # 使用新的配置系统
+    config = get_unet_mask_config()
+    
+    # 创建输出目录
+    os.makedirs(os.path.dirname(config['train']['model_save_path']), exist_ok=True)
+    os.makedirs(config['train']['output_dir'], exist_ok=True)
+    
+    # 初始化模型
+    device = torch.device(config['runtime']['device'])
+    model = UNetPlusPlus(
+        in_channels=config['model']['input_channels'],
+        num_classes=config['model']['num_classes'],
+        deep_supervision=config['model']['deep_supervision']
+    ).to(device)
+    
+    # 创建数据集
+    train_dataset, val_dataset = create_datasets(config)
+    
+    # 创建数据加载器
+    train_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=config['train']['batch_size'], shuffle=False, num_workers=4)
+    
+    # 定义损失函数和优化器
+    criterion = BCEDiceLoss()
+    
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=float(config['train']['lr']),  # 确保转换为浮点数
+        weight_decay=float(config['train']['weight_decay'])  # 确保转换为浮点数
+    )
+    
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.5, patience=10, verbose=True
+    )
+    
+    # 训练模型
+    train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device, config)
 
 def main():
     # 使用新的配置系统
@@ -196,107 +202,9 @@ def main():
     os.makedirs(os.path.dirname(config['train']['model_save_path']), exist_ok=True)
     os.makedirs(config['train']['output_dir'], exist_ok=True)
     
-    # 设备配置
-    device = torch.device(config['device'])
-    
-    # 模型初始化
-    model = UNetPlusPlus(
-        in_channels=config['model']['input_channels'],
-        num_classes=config['model']['num_classes'],
-        deep_supervision=config['model']['deep_supervision']
-    ).to(device)
-    
-    # 创建数据集
-    train_dataset, val_dataset = create_datasets(cfg)
-    
-    # 创建数据加载器
-    train_loader = DataLoader(train_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=False, num_workers=4)
-    
-    # 定义损失函数和优化器
-    criterion = BCEDiceLoss(
-        bce_weight=cfg.LOSS.BCE_WEIGHT,
-        smooth=cfg.LOSS.DICE_SMOOTH
-    )
-    
-    optimizer = optim.Adam(
-        model.parameters(),
-        lr=cfg.TRAIN.LR,
-        weight_decay=cfg.TRAIN.WEIGHT_DECAY
-    )
-    
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5
-    )
-    
-    # Add this in your training loop where you call scheduler.step()
-    # old_lr = optimizer.param_groups[0]['lr']
-    # scheduler.step(val_loss)
-    # new_lr = optimizer.param_groups[0]['lr']
-    # if old_lr != new_lr:
-    #     print(f'Learning rate reduced from {old_lr} to {new_lr}')
-    
-    # 训练循环
-    best_val_loss = float('inf')
-    train_losses = []
-    val_losses = []
-    train_dices = []
-    val_dices = []
-    
-    print(f"开始训练 {cfg.MODEL.NAME} 模型...")
-    print(f"训练集: {len(train_dataset)} 张图像")
-    print(f"验证集: {len(val_dataset)} 张图像")
-    
-    for epoch in range(cfg.TRAIN.EPOCHS):
-        # 训练一个epoch
-        train_loss, train_dice = train_epoch(model, train_loader, criterion, optimizer, device, epoch, cfg)
-        train_losses.append(train_loss)
-        train_dices.append(train_dice)
-        
-        # 验证
-        val_loss, val_dice = validate(model, val_loader, criterion, device, cfg)
-        val_losses.append(val_loss)
-        val_dices.append(val_dice)
-        
-        # 学习率调度
-        scheduler.step(val_loss)
-        
-        # 打印训练信息
-        print(f"Epoch [{epoch+1}/{cfg.TRAIN.EPOCHS}] "
-              f"Train Loss: {train_loss:.4f}, Train Dice: {train_dice:.4f} "
-              f"Val Loss: {val_loss:.4f}, Val Dice: {val_dice:.4f}")
-        
-        # 保存最佳模型
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            torch.save(model.state_dict(), cfg.TRAIN.MODEL_SAVE_PATH)
-            print(f"保存最佳模型: {cfg.TRAIN.MODEL_SAVE_PATH} (Val Loss: {val_loss:.4f})")
-        
-        # 定期保存模型
-        if (epoch + 1) % cfg.TRAIN.SAVE_INTERVAL == 0:
-            torch.save(model.state_dict(), os.path.join(
-                os.path.dirname(cfg.TRAIN.MODEL_SAVE_PATH),
-                f"unet_plus_plus_epoch_{epoch+1}.pth"
-            ))
-    
-    # 绘制训练历史
-    plt.figure(figsize=(12, 4))
-    plt.subplot(121)
-    plt.plot(train_losses, label='Train Loss')
-    plt.plot(val_losses, label='Val Loss')
-    plt.legend()
-    plt.title('Loss History')
-    
-    plt.subplot(122)
-    plt.plot(train_dices, label='Train Dice')
-    plt.plot(val_dices, label='Val Dice')
-    plt.legend()
-    plt.title('Dice Coefficient History')
-    
-    plt.savefig(os.path.join(cfg.TRAIN.OUTPUT_DIR, 'training_history.png'))
-    plt.close()
-    
-    print(f"训练完成！最佳验证损失: {best_val_loss:.4f}")
+    print("开始训练...")
+    train()
+    print("训练完成！")
 
 if __name__ == "__main__":
     main()

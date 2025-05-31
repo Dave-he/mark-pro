@@ -3,10 +3,10 @@
 
 # 数据路径配置
 data:
-  watermarked_dir: './data/train/watermarked'
-  clean_dir: './data/train/clean'
-  input_dir: './data/input/'
-  output_dir: './data/output/'
+  watermarked_dir: '../data/train/watermarked'
+  clean_dir: '../data/train/clean'
+  input_dir: '../data/input/'
+  output_dir: '../data/output/'
 
 # 训练配置覆盖
 train:
@@ -20,7 +20,7 @@ train:
 model:
   name: 'SegGuidedUnetPP'
   use_seg_branch: true
-  checkpoint: 'seg_unetpp.pth'
+  checkpoint: '../models/seg_unetpp.pth'  # 确保路径正确
   attention:
     enabled: true
     type: 'channel'

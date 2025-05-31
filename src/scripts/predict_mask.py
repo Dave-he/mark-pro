@@ -6,7 +6,10 @@ from tqdm import tqdm
 from PIL import Image
 import subprocess
 import tempfile
-# 移除 yacs 导入，使用新的配置系统
+import argparse
+# 修复导入路径
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from configs.config import get_unet_mask_config
 from models.unetpp.unet_plus_plus import UNetPlusPlus
 from common.data.dataset_mask import get_val_transform
@@ -19,7 +22,8 @@ class WatermarkRemovalPipeline:
         self.config = get_unet_mask_config()
         self.device = torch.device(device)
         self.model = self._load_model(model_path)
-        self.transform = get_val_transform(self.config['data']['img_size'])
+        # 修复配置键名：从 img_size 改为 image_size
+        self.transform = get_val_transform(self.config['data']['image_size'][0])
         
     def _load_model(self, model_path):
         """Load UNet model for mask prediction"""
@@ -186,20 +190,30 @@ class WatermarkRemovalPipeline:
         
         return results
 
+# 在 main() 函数中修改参数解析部分
 def main():
     # 使用新的配置系统
     config = get_unet_mask_config()
     
     parser = argparse.ArgumentParser(description='Watermark Removal Pipeline')
-    parser.add_argument('--input', type=str, required=True, help='Input image or directory')
+    # 将 required=True 改为 required=False，并提供默认值
+    parser.add_argument('--input', type=str, required=False, 
+                       default=config.get('predict', {}).get('input_dir', './input'), 
+                       help='Input image or directory')
     parser.add_argument('--output', type=str, default=config['predict']['output_dir'], help='Output directory')
-    parser.add_argument('--model', type=str, default=config['train']['model_save_path'], help='Model weights path')
-    parser.add_argument('--device', type=str, default=config['device'], help='Device (cuda/cpu)')
+    parser.add_argument('--model', type=str, default=config['model']['save_path'], help='Model weights path')
+    parser.add_argument('--device', type=str, default=config['runtime']['device'], help='Device (cuda/cpu)')
     parser.add_argument('--save-mask', action='store_true', help='Save predicted masks')
-    parser.add_argument('--iopaint-model', type=str, default='lama', 
+    parser.add_argument('--iopaint-model', type=str, default=config['iopaint']['model'], 
                        choices=['lama', 'ldm', 'zits', 'mat'], help='IOPaint model')
     
     args = parser.parse_args()
+    
+    # 检查输入路径是否存在
+    if not os.path.exists(args.input):
+        print(f"错误：输入路径不存在: {args.input}")
+        print("请使用 --input 参数指定有效的输入路径")
+        return
     
     # Check if iopaint is installed
     try:

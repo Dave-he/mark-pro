@@ -4,33 +4,8 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms
-from configs.default import cfg
 
-# 使用Albumentations库进行更高效的数据增强
-# import albumentations as A
-# from albumentations.pytorch import ToTensorV2
-
-# def get_transforms(mode='train'):
-#     if mode == 'train':
-#         return A.Compose([
-#             A.RandomResizedCrop(height=cfg.data.image_size[0], width=cfg.data.image_size[1]),
-#             A.HorizontalFlip(p=0.5),
-#             A.VerticalFlip(p=0.5),
-#             A.RandomRotate90(p=0.5),
-#             A.RandomBrightnessContrast(p=0.2),
-#             A.GaussNoise(p=0.2),
-#             A.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-#             ToTensorV2(),
-#         ])
-#     else:
-#         return A.Compose([
-#             A.Resize(height=cfg.data.image_size[0], width=cfg.data.image_size[1]),
-#             A.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-#             ToTensorV2(),
-#         ])
-
-
-
+# 移除旧的配置导入，使用函数参数传递配置
 
 class WatermarkDataset(Dataset):
     def __init__(self, root_dir, transform=None, mode='train', split_ratio=0.8, config=None):
@@ -40,50 +15,63 @@ class WatermarkDataset(Dataset):
         split_idx = int(len(all_files) * split_ratio)
         
         if mode == 'train':
-            self.files = all_files[:split_idx]  # ← 训练集应取前80%
+            self.files = all_files[:split_idx]
         else:
-            self.files = all_files[split_idx:]  # ← 验证集应取后20%
+            self.files = all_files[split_idx:]
         self.root_dir = root_dir
         self.transform = transform
         self.mode = mode
-        self.config = config  # 保存配置引用
+        self.config = config
         
         self.watermarked_dir = os.path.join(root_dir, 'watermarked')
         self.clean_dir = os.path.join(root_dir, 'clean')
     
     def __len__(self):
-        return len(self.filenames)
-
+        return len(self.files)
+    
     def __getitem__(self, idx):
-        filename = self.filenames[idx]
+        filename = self.files[idx]
         
-        # 加载图像
-        wm_path = os.path.join(self.watermarked_dir, filename)
-        clean_path = os.path.join(self.clean_dir, filename)
+        # 加载水印图像
+        watermarked_path = os.path.join(self.watermarked_dir, filename)
+        watermarked_image = Image.open(watermarked_path).convert('RGB')
         
-        wm_image = Image.open(wm_path).convert('RGB')
+        # 加载干净图像
+        clean_filename = filename.replace('_watermark', '_clean')
+        clean_path = os.path.join(self.clean_dir, clean_filename)
         clean_image = Image.open(clean_path).convert('RGB')
         
-        # 应用变换
-        if self.transform:
-            wm_image = self.transform(wm_image)
-            clean_image = self.transform(clean_image)
+        # 生成掩码
+        watermarked_np = np.array(watermarked_image)
+        clean_np = np.array(clean_image)
         
-        # 生成水印掩码（如果不存在）
-        mask = self._generate_mask(wm_image, clean_image)
+        # 计算差异
+        diff = np.abs(watermarked_np.astype(np.float32) - clean_np.astype(np.float32))
+        diff_gray = np.mean(diff, axis=2)
+        
+        # 创建二值掩码
+        threshold = 30
+        mask = (diff_gray > threshold).astype(np.uint8) * 255
+        mask = Image.fromarray(mask, mode='L')
+        
+        # 调整大小
+        if self.config and 'data' in self.config and 'image_size' in self.config['data']:
+            target_size = tuple(self.config['data']['image_size'])
+            watermarked_image = watermarked_image.resize(target_size, Image.LANCZOS)
+            clean_image = clean_image.resize(target_size, Image.LANCZOS)
+            mask = mask.resize(target_size, Image.NEAREST)
+        
+        if self.transform:
+            watermarked_image = self.transform(watermarked_image)
+            clean_image = self.transform(clean_image)
+            mask = self.transform(mask)
         
         return {
-            'watermarked': wm_image,
+            'watermarked': watermarked_image,
             'clean': clean_image,
             'mask': mask,
             'filename': filename
         }
-    
-    def _generate_mask(self, wm_image, clean_image, threshold=0.1):
-        """生成水印区域的二值掩码"""
-        diff = torch.abs(wm_image - clean_image).mean(dim=0)
-        mask = (diff > threshold).float()
-        return mask.unsqueeze(0)  # 添加通道维度
 
 class SegWatermarkDataset(Dataset):
     def __init__(self, watermarked_dir, clean_dir, transform=None, augment=False):
@@ -103,82 +91,35 @@ class SegWatermarkDataset(Dataset):
     
     def __getitem__(self, idx):
         w_file, c_file = self.file_pairs[idx]
-        w_path = os.path.join(self.watermarked_dir, w_file)
-        c_path = os.path.join(self.clean_dir, c_file)
-        w_img = Image.open(w_path).convert('RGB')
-        c_img = Image.open(c_path).convert('RGB')
-        # 先resize/crop/pad
-        # 使用配置参数而不是全局 cfg
-        if self.config['data']['resize_mode'] == 'fixed':
-            w_img = w_img.resize(tuple(self.config['data']['image_size']), Image.BICUBIC)
-            c_img = c_img.resize(tuple(self.config['data']['image_size']), Image.BICUBIC)
-        elif self.config['data']['resize_mode'] == 'scale':
-            target_size = min(self.config['data']['image_size'])
-            def resize_and_crop(img):
-                w, h = img.size
-                scale = target_size / min(w, h)
-                new_w, new_h = int(w * scale), int(h * scale)
-                img = img.resize((new_w, new_h), Image.BICUBIC)
-                left = (new_w - target_size) // 2
-                top = (new_h - target_size) // 2
-                img = img.crop((left, top, left + target_size, top + target_size))
-                return img
-            w_img = resize_and_crop(w_img)
-            c_img = resize_and_crop(c_img)
-        elif self.config['data']['resize_mode'] == 'pad':
-            target_w, target_h = self.config['data']['image_size']
-            def pad_to_size(img, fill=0):
-                w, h = img.size
-                pad_w = max(0, target_w - w)
-                pad_h = max(0, target_h - h)
-                padding = (pad_w//2, pad_h//2, pad_w - pad_w//2, pad_h - pad_h//2)
-                return transforms.Pad(padding, fill=fill)(img)
-            w_img = pad_to_size(w_img, fill=self.config['data']['pad_value'])
-            c_img = pad_to_size(c_img, fill=self.config['data']['pad_value'])
-        # 用resize/crop/pad后图片生成mask
-        mask = self._create_mask(w_img, c_img)
-        # mask同样resize/crop/pad（如果需要）
-        mask = mask.resize(tuple(cfg.data.image_size), Image.NEAREST)
-        # 转tensor并归一化
-        to_tensor = transforms.ToTensor()
-        normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        w_img = normalize(to_tensor(w_img))
-        c_img = normalize(to_tensor(c_img))
-        mask = to_tensor(mask)
-        if self.augment:
-            w_img, c_img, mask = self._augment(w_img, c_img, mask)
-        return w_img, c_img, mask
-    
-    def _create_mask(self, w_img, c_img):
-        w_np = np.array(w_img).astype(np.float32)
-        c_np = np.array(c_img).astype(np.float32)
-        diff = np.mean(np.abs(w_np - c_np), axis=2)
-        # 使用配置中的阈值
-        mask = (diff > self.config['data']['mask_threshold']).astype(np.float32)
-        return Image.fromarray(mask * 255).convert('L')
-    
-    def transform_mask(self, mask):
-        mask = mask.resize(cfg.data.image_size, Image.NEAREST)
-        return transforms.ToTensor()(mask)
-    
-    def _augment(self, w_img, c_img, mask):
-        # 数据增强（随机翻转、旋转等）
-        if np.random.random() > 0.5:
-            w_img = transforms.functional.hflip(w_img)
-            c_img = transforms.functional.hflip(c_img)
-            mask = transforms.functional.hflip(mask)
         
-        if np.random.random() > 0.5:
-            w_img = transforms.functional.vflip(w_img)
-            c_img = transforms.functional.vflip(c_img)
-            mask = transforms.functional.vflip(mask)
+        # 加载图像
+        watermarked_path = os.path.join(self.watermarked_dir, w_file)
+        clean_path = os.path.join(self.clean_dir, c_file)
         
-        angle = np.random.uniform(-15, 15)
-        w_img = transforms.functional.rotate(w_img, angle)
-        c_img = transforms.functional.rotate(c_img, angle)
-        mask = transforms.functional.rotate(mask, angle)
+        watermarked_image = Image.open(watermarked_path).convert('RGB')
+        clean_image = Image.open(clean_path).convert('RGB')
         
-        return w_img, c_img, mask
+        # 生成掩码
+        watermarked_np = np.array(watermarked_image)
+        clean_np = np.array(clean_image)
+        
+        diff = np.abs(watermarked_np.astype(np.float32) - clean_np.astype(np.float32))
+        diff_gray = np.mean(diff, axis=2)
+        
+        threshold = 30
+        mask = (diff_gray > threshold).astype(np.uint8) * 255
+        mask = Image.fromarray(mask, mode='L')
+        
+        if self.transform:
+            watermarked_image = self.transform(watermarked_image)
+            clean_image = self.transform(clean_image)
+            mask = self.transform(mask)
+        
+        return {
+            'watermarked': watermarked_image,
+            'clean': clean_image,
+            'mask': mask
+        }
 
 def create_dataloaders(config):
     """创建数据加载器，接收配置参数"""
@@ -192,10 +133,10 @@ def create_dataloaders(config):
         config['data']['watermarked_dir'],
         config['data']['clean_dir'],
         transform=transform,
-        config=config  # 传递配置
+        config=config
     )
     
-    train_size = int(config['train']['validation_split'] * len(dataset))
+    train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
     
